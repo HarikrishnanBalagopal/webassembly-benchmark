@@ -128,7 +128,8 @@ def get_loads_and_stores(input_path):
     return loads, stores
 
 
-def test_utils():
+def test_utils() -> None:
+    """Tests for utility functions."""
     xs = [
         "runsc-sdk-wrapper-rust-sort-time",
         "runsc-sdk-wrapper-c-copyfile-time",
@@ -288,14 +289,20 @@ def test_utils():
             }
         )
     )
+    if Path("./perfmemrecord").is_file():
+        print("loads and stores", get_loads_and_stores("./perfmemrecord"))
+    if Path("./time.txt").is_file():
+        print("test_parse_time_txt", test_parse_time_txt("./time.txt"))
+    if Path("./collected_times.txt").is_file():
+        print("test_parse_time_txt", test_parse_time_txt("./collected_times.txt"))
 
 
 def collect_data_into_json(
-    input_dir,
-    output_dir="output_iter_1",
-    run_perf=False,
-    flamegraph_scripts_dir="/root/code/remote/github.com/brendangregg/FlameGraph",
-):
+    input_dir: str,
+    output_dir: str = "output_iter_1",
+    run_perf: bool = False,
+    flamegraph_scripts_dir: str = "/root/code/remote/github.com/brendangregg/FlameGraph",
+) -> Path:
     platform_lang_workload_perf_data = dict()
     seen_syscalls = set()
     relevant_lines_regex = re.compile(r"^\s+(?P<count>\d+)\s+(?P<tag>[\w-]+)\s+#")
@@ -590,11 +597,15 @@ def collect_data_into_json(
     with open(os.path.join(output_dir, "seen_syscalls.json"), "w") as f:
         json.dump(list(seen_syscalls), f)
     # print('platform_lang_workload_perf_data', platform_lang_workload_perf_data)
-    with open(os.path.join(output_dir, "perf_data.json"), "w") as f:
+    perf_data_path = Path(output_dir) / "perf_data.json"
+    with open(perf_data_path, "w") as f:
         json.dump(platform_lang_workload_perf_data, f)
+    return perf_data_path
 
 
-def copy_flame_graphs(paths_file="flame_paths.txt", output_dir="output_results_3"):
+def copy_flame_graphs(
+    paths_file: str = "flame_paths.txt", output_dir: str = "output_results_3"
+) -> None:
     with open(paths_file) as f:
         lines = [line for line in f.read().split("\n") if len(line) > 0]
     print("num flamegraphs:", len(lines))
@@ -607,7 +618,7 @@ def copy_flame_graphs(paths_file="flame_paths.txt", output_dir="output_results_3
 
 
 # def plot_graphs(data_path, output_dir="output_iter_1"):
-def plot_graphs(data_path: str, output_dir: str):
+def plot_graphs(data_path: str, output_dir: str) -> None:
     print(f"plot_graphs called with data_path: {data_path} output_dir: {output_dir}")
     with open(data_path, "r", encoding="utf-8") as f:
         data = json.load(f)
@@ -855,71 +866,71 @@ def plot_graphs(data_path: str, output_dir: str):
 
 def get_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
-    # parser.add_argument('--input', type=str, default='/root/cleaned_profiling_results_3', help='path to the input directory')
     parser.add_argument(
-        "--input",
+        "--input-json",
+        dest="input_json",
         type=str,
-        required=True,
-        help="path to the input json file",
+        required=False,
+        default="",
+        help="path to the json file containing performance data",
+    )
+    parser.add_argument(
+        "--input-dir",
+        dest="input_dir",
+        type=str,
+        required=False,
+        default="",
+        help="path to the directory containing the raw profiling output",
+    )
+    parser.add_argument(
+        "--run-perf",
+        dest="run_perf",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="run perf tools to analyze the profiling data, for use with --input-dir",
     )
     parser.add_argument(
         "--output",
         type=str,
+        required=False,
         default="./output_results",
-        help="path to the output directory",
+        help="path to the output directory, will be created if it doesn't exist",
     )
     return parser
 
 
-def main():
+def main() -> None:
+    # Tests for utility functions
+    # test_utils()
+
     parser = get_parser()
     args = parser.parse_args()
     print("running with args:", args)
-    # test_utils()
 
-    # commenting this out
-    # print(
-    #     plot_bar_chart(
-    #         [
-    #             "crun_native-c",
-    #             "crun_sdk-c",
-    #             "crun_wasm-c",
-    #             "gvisor_native-c",
-    #             "gvisor_sdk-c",
-    #             "native-c",
-    #             "sdk-c",
-    #             "wasm-c",
-    #         ],
-    #         # [8, 7, 4, 5, 6, 1, 3, 2],
-    #         # [1.8, 1.7, 1.4, 1.5, 1.5, 1, 3, 2],
-    #         [1, 1, 1, 1, 1, 1, 3, 2],
-    #         ylabel="execution time (in seconds)",
-    #         xlabel="platform and language",
-    #     )
-    # )
-    # if Path("./perfmemrecord").is_file():
-    #     print("loads and stores", get_loads_and_stores("./perfmemrecord"))
-    # if Path("./time.txt").is_file():
-    #     print("test_parse_time_txt", test_parse_time_txt("./time.txt"))
-    # commenting this out
+    if args.input_json == "" and args.input_dir == "":
+        raise ValueError("please provide either --input-json or --input-dir")
 
-    # if os.path.isfile('./collected_times.txt'):
-    # print('test_parse_time_txt', test_parse_time_txt('./collected_times.txt'))
-
-    # commenting this out
-    # collect_data_into_json(
-    #     input_dir="/root/cleaned_profiling_results_3", output_dir="output_results_3"
-    # )  # , run_perf=True)
-    # copy_flame_graphs()
-    # commenting this out
-
-    # plot_graphs(
-    #     data_path="./output_results_3/perf_data.json", output_dir="output_results_3"
-    # )
-    data_path = Path(args.input).resolve()
+    perf_data_path = Path(args.input_json).resolve()
     output_dir = Path(args.output).resolve()
-    assert data_path.is_file(), f"input {data_path} doesn't exist"
-    plot_graphs(data_path=str(data_path), output_dir=str(output_dir))
+
+    if args.input_dir != "":
+        # Collect all performance profile data into a single JSON file.
+        # Also has the option of running the profiling tools to generate the data.
+        data_dir = Path(args.input_dir).resolve()
+        assert data_dir.is_file(), f"input directory {data_dir} doesn't exist"
+        if args.run_perf:
+            print("Also running perf tools")
+        perf_data_path = collect_data_into_json(
+            input_dir=str(data_dir),
+            output_dir=str(output_dir),
+            run_perf=args.run_perf,
+        )
+        # Copy all the generated flamegraphs over
+        # copy_flame_graphs(output_dir=str(output_dir))
+
+    # Create the graphs
+    assert perf_data_path.is_file(), f"input {perf_data_path} doesn't exist"
+    plot_graphs(data_path=str(perf_data_path), output_dir=str(output_dir))
 
 
 if __name__ == "__main__":

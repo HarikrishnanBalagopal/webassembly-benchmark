@@ -17,7 +17,7 @@ pip install -r requirements.txt
 Activate the virtual environment.
 
 ```shell
-python3 create_charts.py --input ./perf_data.json
+python3 create_charts.py --input-json ./perf_data.json
 ```
 
 The output directory will contain the graphs.
