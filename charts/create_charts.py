@@ -1,19 +1,25 @@
+import argparse
+import json
 import os
 import re
-import json
-import argparse
 import subprocess
+from pathlib import Path
+from typing import Dict, List, Tuple
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-from tqdm import tqdm
 from matplotlib.ticker import MaxNLocator
-from pathlib import Path
+from tqdm import tqdm
 
 # from tqdm.notebook import tqdm
 
+DEFAULT_FLAMEGRAPH_SCRIPTS_LOCATION = (
+    "/root/code/remote/github.com/brendangregg/FlameGraph"
+)
 
-def parse_time_txt(s):
+
+def parse_time_txt(s: str):
     time_txt_regex = re.compile(
         r"^(?P<type>real|user|sys)\s+(?P<minutes>\d+)m(?P<seconds>\d+(?:\.\d+)?)s$"
     )
@@ -32,18 +38,18 @@ def parse_time_txt(s):
         print(time_type, time_minutes, time_seconds, time_total_seconds)
 
 
-def test_parse_time_txt(input_path):
+def test_parse_time_txt(input_path: str) -> None:
     with open(input_path) as f:
         print(parse_time_txt(f.read()))
 
 
-def get_dict_keys_values(d):
+def get_dict_keys_values(d: Dict) -> Tuple[List, List]:
     keys = list(d.keys())
     values = [d[k] for k in keys]
     return keys, values
 
 
-def get_sorted_xs_ys(xs, ys):
+def get_sorted_xs_ys(xs: List[str], ys: List) -> Tuple[List, List]:
     idxs = list(range(len(xs)))
     # print(idxs, xs, ys)
     sorted_idxs = sorted(idxs, key=lambda i: (len(xs[i]), xs[i]))
@@ -89,7 +95,7 @@ def plot_bar_chart(
     plt.close(fig)
 
 
-def get_workload_and_lang(workload_name):
+def get_workload_and_lang(workload_name: str) -> Tuple[str, str]:
     languages = ["c", "go", "py", "rust"]
     workloads = ["sort", "copyfile", "sudoku", "graph", "fileserver", "without", "simd"]
 
@@ -110,7 +116,7 @@ def get_workload_and_lang(workload_name):
     return curr_work, curr_lang
 
 
-def get_loads_and_stores(input_path):
+def get_loads_and_stores(input_path: str) -> Tuple[int, int]:
     with open(input_path) as f:
         data = f.read()
     lines = data.split("\n")
@@ -301,7 +307,7 @@ def collect_data_into_json(
     input_dir: str,
     output_dir: str = "output_iter_1",
     run_perf: bool = False,
-    flamegraph_scripts_dir: str = "/root/code/remote/github.com/brendangregg/FlameGraph",
+    flamegraph_scripts_dir: str = DEFAULT_FLAMEGRAPH_SCRIPTS_LOCATION,
 ) -> Path:
     platform_lang_workload_perf_data = dict()
     seen_syscalls = set()
@@ -887,7 +893,7 @@ def get_parser() -> argparse.ArgumentParser:
         dest="run_perf",
         action=argparse.BooleanOptionalAction,
         default=False,
-        help="run perf tools to analyze the profiling data, for use with --input-dir",
+        help="run perf tools to analyze the data and generate flamegraphs, for use with --input-dir",
     )
     parser.add_argument(
         "--output",
@@ -919,14 +925,14 @@ def main() -> None:
         data_dir = Path(args.input_dir).resolve()
         assert data_dir.is_file(), f"input directory {data_dir} doesn't exist"
         if args.run_perf:
-            print("Also running perf tools")
+            print(
+                "Also running perf tools to analyze the data and generate flamegraphs"
+            )
         perf_data_path = collect_data_into_json(
             input_dir=str(data_dir),
             output_dir=str(output_dir),
             run_perf=args.run_perf,
         )
-        # Copy all the generated flamegraphs over
-        # copy_flame_graphs(output_dir=str(output_dir))
 
     # Create the graphs
     assert perf_data_path.is_file(), f"input {perf_data_path} doesn't exist"

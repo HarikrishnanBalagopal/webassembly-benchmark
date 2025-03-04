@@ -1,4 +1,4 @@
-# WebAssembly Benchmark 2023
+# WebAssembly Benchmarks 2025
 
 Benchmarking WebAssembly in various scenarios.
 
